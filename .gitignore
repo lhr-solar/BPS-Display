@@ -1,0 +1,7 @@
+*.uvoptx
+*.uvprojx
+*.out
+*.csv
+*.log
+.vscode
+build

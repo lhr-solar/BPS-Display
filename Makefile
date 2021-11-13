@@ -57,7 +57,15 @@ Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_spi.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim_ex.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c \
-Core/Src/system_stm32f4xx.c  
+Core/Src/system_stm32f4xx.c \
+Display/Config/DEV_Config.c \
+Display/e-Paper/EPD_2in7.c \
+Display/Fonts/font8.c \
+Display/Fonts/font12.c \
+Display/Fonts/font16.c \
+Display/Fonts/font20.c \
+Display/Fonts/font24.c \
+Display/GUI/GUI_Paint.c
 
 # ASM sources
 ASM_SOURCES =  \
@@ -83,6 +91,8 @@ SZ = $(PREFIX)size
 endif
 HEX = $(CP) -O ihex
 BIN = $(CP) -O binary -S
+
+SF = st-flash
  
 #######################################
 # CFLAGS
@@ -118,7 +128,12 @@ C_INCLUDES =  \
 -IDrivers/STM32F4xx_HAL_Driver/Inc \
 -IDrivers/STM32F4xx_HAL_Driver/Inc/Legacy \
 -IDrivers/CMSIS/Device/ST/STM32F4xx/Include \
--IDrivers/CMSIS/Include
+-IDrivers/CMSIS/Include \
+-IDisplay/Config \
+-IDisplay/e-Paper \
+-IDisplay/Examples \
+-IDisplay/Fonts \
+-IDisplay/GUI
 
 
 # compile gcc flags
@@ -127,7 +142,7 @@ ASFLAGS = $(MCU) $(AS_DEFS) $(AS_INCLUDES) $(OPT) -Wall -fdata-sections -ffuncti
 CFLAGS = $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections
 
 ifeq ($(DEBUG), 1)
-CFLAGS += -g -gdwarf-2
+CFLAGS += -g3 -gdwarf-2
 endif
 
 
@@ -184,6 +199,12 @@ $(BUILD_DIR):
 #######################################
 clean:
 	-rm -fR $(BUILD_DIR)
+
+#######################################
+# flash
+#######################################
+flash: 
+	$(SF) write $(BUILD_DIR)/$(TARGET).bin 0x8000000
   
 #######################################
 # dependencies

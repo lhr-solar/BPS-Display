@@ -21,9 +21,27 @@
 #include "display_wrapper.h"
 
 /* USER CODE END Header */
-
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+
+/* USER CODE END Includes */
+
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
+
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 CAN_HandleTypeDef hcan2;
@@ -32,14 +50,24 @@ SPI_HandleTypeDef hspi1;
 
 UART_HandleTypeDef huart6;
 
+/* USER CODE BEGIN PV */
+
+/* USER CODE END PV */
+
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_CAN2_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_USART6_UART_Init(void);
+/* USER CODE BEGIN PFP */
 
+/* USER CODE END PFP */
 
+/* Private user code ---------------------------------------------------------*/
+/* USER CODE BEGIN 0 */
+
+/* USER CODE END 0 */
 
 /**
   * @brief  The application entry point.
@@ -81,9 +109,16 @@ int main(void)
   Display_Update();
 
   /* USER CODE END 2 */
-  while (1) {
 
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
+  while (1)
+  {
+    /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
   }
+  /* USER CODE END 3 */
 }
 
 /**
@@ -107,12 +142,12 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
-	Error_Handler();
+    Error_Handler();
   }
   /** Initializes the CPU, AHB and APB buses clocks
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-							  |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSE;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
@@ -120,7 +155,7 @@ void SystemClock_Config(void)
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
   {
-	Error_Handler();
+    Error_Handler();
   }
 }
 
@@ -140,10 +175,10 @@ static void MX_CAN2_Init(void)
 
   /* USER CODE END CAN2_Init 1 */
   hcan2.Instance = CAN2;
-  hcan2.Init.Prescaler = 16;
+  hcan2.Init.Prescaler = 8;
   hcan2.Init.Mode = CAN_MODE_NORMAL;
   hcan2.Init.SyncJumpWidth = CAN_SJW_1TQ;
-  hcan2.Init.TimeSeg1 = CAN_BS1_1TQ;
+  hcan2.Init.TimeSeg1 = CAN_BS1_6TQ;
   hcan2.Init.TimeSeg2 = CAN_BS2_1TQ;
   hcan2.Init.TimeTriggeredMode = DISABLE;
   hcan2.Init.AutoBusOff = DISABLE;
@@ -153,7 +188,7 @@ static void MX_CAN2_Init(void)
   hcan2.Init.TransmitFifoPriority = DISABLE;
   if (HAL_CAN_Init(&hcan2) != HAL_OK)
   {
-	Error_Handler();
+    Error_Handler();
   }
   /* USER CODE BEGIN CAN2_Init 2 */
 
@@ -191,7 +226,7 @@ static void MX_SPI1_Init(void)
   hspi1.Init.CRCPolynomial = 10;
   if (HAL_SPI_Init(&hspi1) != HAL_OK)
   {
-	Error_Handler();
+    Error_Handler();
   }
   /* USER CODE BEGIN SPI1_Init 2 */
 
@@ -224,7 +259,7 @@ static void MX_USART6_UART_Init(void)
   huart6.Init.OverSampling = UART_OVERSAMPLING_16;
   if (HAL_UART_Init(&huart6) != HAL_OK)
   {
-	Error_Handler();
+    Error_Handler();
   }
   /* USER CODE BEGIN USART6_Init 2 */
 
@@ -248,26 +283,26 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOC_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, SPI1_CS_Pin|Dsp_DC_Pin|Dsp_RST_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, SPI1_CS_Pin|DSP_DC_Pin|DSP_RST_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : Btn_1_Pin Btn_2_Pin Btn_3_Pin Btn_4_Pin */
-  GPIO_InitStruct.Pin = Btn_1_Pin|Btn_2_Pin|Btn_3_Pin|Btn_4_Pin;
+  /*Configure GPIO pins : BTN_1_Pin BTN_2_Pin BTN_3_Pin BTN_4_Pin */
+  GPIO_InitStruct.Pin = BTN_1_Pin|BTN_2_Pin|BTN_3_Pin|BTN_4_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : SPI1_CS_Pin Dsp_DC_Pin Dsp_RST_Pin */
-  GPIO_InitStruct.Pin = SPI1_CS_Pin|Dsp_DC_Pin|Dsp_RST_Pin;
+  /*Configure GPIO pins : SPI1_CS_Pin DSP_DC_Pin DSP_RST_Pin */
+  GPIO_InitStruct.Pin = SPI1_CS_Pin|DSP_DC_Pin|DSP_RST_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : Dsp_BUSY_Pin */
-  GPIO_InitStruct.Pin = Dsp_BUSY_Pin;
+  /*Configure GPIO pin : DSP_BUSY_Pin */
+  GPIO_InitStruct.Pin = DSP_BUSY_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(Dsp_BUSY_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(DSP_BUSY_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : SUPP_CHECK_Pin */
   GPIO_InitStruct.Pin = SUPP_CHECK_Pin;

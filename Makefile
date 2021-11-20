@@ -60,12 +60,9 @@ Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c \
 Core/Src/system_stm32f4xx.c \
 Display/Config/DEV_Config.c \
 Display/e-Paper/EPD_2in7.c \
-Display/Fonts/font8.c \
-Display/Fonts/font12.c \
-Display/Fonts/font16.c \
-Display/Fonts/font20.c \
-Display/Fonts/font24.c \
-Display/GUI/GUI_Paint.c
+Display/GUI/GUI_Paint.c \
+$(wildcard Display/Fonts/*.c) \
+$(wildcard Display/DisplayWrapper/Src/*.c) \
 
 # ASM sources
 ASM_SOURCES =  \
@@ -133,7 +130,8 @@ C_INCLUDES =  \
 -IDisplay/e-Paper \
 -IDisplay/Examples \
 -IDisplay/Fonts \
--IDisplay/GUI
+-IDisplay/GUI \
+-IDisplay/DisplayWrapper/Inc
 
 
 # compile gcc flags

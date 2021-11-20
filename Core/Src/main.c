@@ -17,9 +17,8 @@
   ******************************************************************************
   */
 
-/* Display driver */
-#include "EPD_2in7.h"
-#include "GUI_Paint.h"
+/* Display functions */
+#include "display_wrapper.h"
 
 /* USER CODE END Header */
 
@@ -75,20 +74,11 @@ int main(void)
   MX_USART6_UART_Init();
   /* USER CODE BEGIN 2 */
 
-  DEV_Module_Init();
-  EPD_2IN7_Init();
-  EPD_2IN7_Clear();
-  HAL_Delay(500);
-
-  // image buffer
-  UBYTE image_buffer[EPD_2IN7_WIDTH * EPD_2IN7_HEIGHT / 8];
-  Paint_NewImage(image_buffer, EPD_2IN7_WIDTH, EPD_2IN7_HEIGHT, 270, WHITE);
-  Paint_SelectImage(image_buffer);
-  Paint_Clear(WHITE);
-
-  Paint_DrawString_EN(0, 0, "Hello, World!", &Font16, WHITE, BLACK);
-
-  EPD_2IN7_Display(image_buffer);
+  Display_Init();
+  Display_DrawString("test", FONT24, 0, 0);
+  Display_DrawString("test", FONT24, 50, 50);
+  Display_DrawString("test", FONT24, 100, 100);
+  Display_Update();
 
   /* USER CODE END 2 */
   while (1) {

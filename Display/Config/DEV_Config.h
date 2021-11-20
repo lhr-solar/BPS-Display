@@ -64,10 +64,10 @@
 /**
  * e-Paper GPIO
 **/
-#define EPD_RST_PIN     Dsp_RST_GPIO_Port, Dsp_RST_Pin
-#define EPD_DC_PIN      Dsp_DC_GPIO_Port, Dsp_DC_Pin
+#define EPD_RST_PIN     DSP_RST_GPIO_Port, DSP_RST_Pin
+#define EPD_DC_PIN      DSP_DC_GPIO_Port, DSP_DC_Pin
 #define EPD_CS_PIN      SPI1_CS_GPIO_Port, SPI1_CS_Pin
-#define EPD_BUSY_PIN    Dsp_BUSY_GPIO_Port, Dsp_BUSY_Pin
+#define EPD_BUSY_PIN    DSP_BUSY_GPIO_Port, DSP_BUSY_Pin
 
 /**
  * GPIO read and write

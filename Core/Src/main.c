@@ -16,28 +16,15 @@
   *
   ******************************************************************************
   */
+
+/* Display driver */
+#include "EPD_2in7.h"
+#include "GUI_Paint.h"
+
 /* USER CODE END Header */
+
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
-
-/* USER CODE END Includes */
-
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
-
-/* USER CODE END PTD */
-
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 CAN_HandleTypeDef hcan2;
@@ -46,24 +33,14 @@ SPI_HandleTypeDef hspi1;
 
 UART_HandleTypeDef huart6;
 
-/* USER CODE BEGIN PV */
-
-/* USER CODE END PV */
-
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_CAN2_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_USART6_UART_Init(void);
-/* USER CODE BEGIN PFP */
 
-/* USER CODE END PFP */
 
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
-
-/* USER CODE END 0 */
 
 /**
   * @brief  The application entry point.
@@ -88,7 +65,7 @@ int main(void)
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-
+  
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -98,17 +75,25 @@ int main(void)
   MX_USART6_UART_Init();
   /* USER CODE BEGIN 2 */
 
+  DEV_Module_Init();
+  EPD_2IN7_Init();
+  EPD_2IN7_Clear();
+  HAL_Delay(500);
+
+  // image buffer
+  UBYTE image_buffer[EPD_2IN7_WIDTH * EPD_2IN7_HEIGHT / 8];
+  Paint_NewImage(image_buffer, EPD_2IN7_WIDTH, EPD_2IN7_HEIGHT, 270, WHITE);
+  Paint_SelectImage(image_buffer);
+  Paint_Clear(WHITE);
+
+  Paint_DrawString_EN(0, 0, "Hello, World!", &Font16, WHITE, BLACK);
+
+  EPD_2IN7_Display(image_buffer);
+
   /* USER CODE END 2 */
+  while (1) {
 
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
   }
-  /* USER CODE END 3 */
 }
 
 /**
@@ -132,12 +117,12 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
-    Error_Handler();
+	Error_Handler();
   }
   /** Initializes the CPU, AHB and APB buses clocks
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+							  |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSE;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
@@ -145,7 +130,7 @@ void SystemClock_Config(void)
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
   {
-    Error_Handler();
+	Error_Handler();
   }
 }
 
@@ -178,7 +163,7 @@ static void MX_CAN2_Init(void)
   hcan2.Init.TransmitFifoPriority = DISABLE;
   if (HAL_CAN_Init(&hcan2) != HAL_OK)
   {
-    Error_Handler();
+	Error_Handler();
   }
   /* USER CODE BEGIN CAN2_Init 2 */
 
@@ -216,7 +201,7 @@ static void MX_SPI1_Init(void)
   hspi1.Init.CRCPolynomial = 10;
   if (HAL_SPI_Init(&hspi1) != HAL_OK)
   {
-    Error_Handler();
+	Error_Handler();
   }
   /* USER CODE BEGIN SPI1_Init 2 */
 
@@ -249,7 +234,7 @@ static void MX_USART6_UART_Init(void)
   huart6.Init.OverSampling = UART_OVERSAMPLING_16;
   if (HAL_UART_Init(&huart6) != HAL_OK)
   {
-    Error_Handler();
+	Error_Handler();
   }
   /* USER CODE BEGIN USART6_Init 2 */
 
@@ -333,7 +318,7 @@ void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+	 ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

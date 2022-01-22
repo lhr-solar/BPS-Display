@@ -19,7 +19,7 @@
 
 /* Display functions */
 #include "display_wrapper.h"
-#include <string.h>
+#include "CANBus.h"
 
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
@@ -54,12 +54,7 @@ UART_HandleTypeDef huart6;
 /* USER CODE BEGIN PV */
 volatile uint8_t display_updated = 0; // semaphore set when the display buffer is updated
 
-#define DATALEN 1 // max 8
-
-CAN_FilterTypeDef FilterConfig;
-CAN_TxHeaderTypeDef TxHeader;
 CAN_RxHeaderTypeDef RxHeader;
-uint8_t TxData[8];  // +1 for null terminator
 uint8_t RxData[8];
 uint32_t TxMailbox;
 /* USER CODE END PV */
@@ -116,69 +111,13 @@ int main(void)
   Display_DrawString(":^)", FONT24, 0, 0);
   Display_Update();
 
-  FilterConfig.FilterBank = 15;
-  FilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
-  FilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
-  FilterConfig.FilterIdLow = 0x0000;
-  FilterConfig.FilterIdHigh = 0x0000;
-  FilterConfig.FilterMaskIdLow = 0x0000;
-  FilterConfig.FilterMaskIdHigh = 0x0000;
-  FilterConfig.FilterFIFOAssignment = CAN_RX_FIFO0;
-  FilterConfig.FilterActivation = CAN_FILTER_ENABLE;
-  FilterConfig.SlaveStartFilterBank = 14;
-
-  // Configure filter settings
-  if (HAL_CAN_ConfigFilter(&hcan2, &FilterConfig) != HAL_OK) {
-    Error_Handler();
-  }
-  // Start CAN
-  if (HAL_CAN_Start(&hcan2) != HAL_OK) {
-    Error_Handler();
-  }
-  // Enable Interrupts
-  if (HAL_CAN_ActivateNotification(&hcan2,
-      CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_TX_MAILBOX_EMPTY)
-      != HAL_OK) {
-    Error_Handler();
-  }
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  char status[] = "     ";
   while (1)
   {
-    status[0] = (HAL_CAN_IsTxMessagePending(&hcan2, CAN_TX_MAILBOX0 | CAN_TX_MAILBOX1 | CAN_TX_MAILBOX2)) ? 
-      (HAL_CAN_GetTxMailboxesFreeLevel(&hcan2) % 10) + '0' : ' ';
-    status[2] = (HAL_CAN_GetRxFifoFillLevel(&hcan2, CAN_RX_FIFO0) % 10) + '0';
-    status[4] = (HAL_CAN_GetRxFifoFillLevel(&hcan2, CAN_RX_FIFO1) % 10) + '0';
-    Display_DrawString(status, FONT24, 100, 100);
-    //Display_Update();
-    
-    // Test CAN transmit message
-    TxHeader.StdId = 0x321;
-    TxHeader.ExtId = 0x01;
-    TxHeader.RTR = CAN_RTR_DATA;
-    TxHeader.IDE = CAN_ID_STD;
-    TxHeader.DLC = DATALEN;
-    TxHeader.TransmitGlobalTime = DISABLE;
-    for (uint8_t i = 0; i < DATALEN; i++) {
-      TxData[i] = 'A';  // initialize transmit buffer to 'A'
-    }
 
-    if (HAL_CAN_AddTxMessage(&hcan2, &TxHeader, TxData, &TxMailbox) != HAL_OK) {
-      Error_Handler();
-    }
-    // for (uint8_t i = 0; i < DATALEN; i++) {
-    //   TxData[i]++;
-    //   if (TxData[i] == 'Z'+1) TxData[i] = 'A';
-    // }
-
-    // if (display_updated == 1) {
-    //   display_updated = 0;
-    //   Display_Update();
-    // }
     HAL_Delay(2000);
   }
   /* USER CODE END 3 */
@@ -381,10 +320,7 @@ void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef* hcan) {
 }
 
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef* hcan) {
-  Display_DrawString(":^)", FONT24, 50, 100);
   HAL_CAN_GetRxMessage(&hcan2, CAN_RX_FIFO0, &RxHeader, RxData);
-  Display_DrawString((char*)RxData, FONT24, 50, 50);
-  Display_Update();
 }
 /* USER CODE END 4 */
 

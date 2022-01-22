@@ -92,6 +92,7 @@ void HAL_CAN_MspInit(CAN_HandleTypeDef* hcan)
 
   /* USER CODE END CAN2_MspInit 0 */
     /* Peripheral clock enable */
+    __HAL_RCC_CAN1_CLK_ENABLE();
     __HAL_RCC_CAN2_CLK_ENABLE();
 
     __HAL_RCC_GPIOB_CLK_ENABLE();

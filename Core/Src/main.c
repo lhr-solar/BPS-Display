@@ -19,6 +19,7 @@
 
 /* Display functions */
 #include "display_wrapper.h"
+#include <string.h>
 
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
@@ -51,7 +52,16 @@ SPI_HandleTypeDef hspi1;
 UART_HandleTypeDef huart6;
 
 /* USER CODE BEGIN PV */
+volatile uint8_t display_updated = 0; // semaphore set when the display buffer is updated
 
+#define DATALEN 1 // max 8
+
+CAN_FilterTypeDef FilterConfig;
+CAN_TxHeaderTypeDef TxHeader;
+CAN_RxHeaderTypeDef RxHeader;
+uint8_t TxData[8];  // +1 for null terminator
+uint8_t RxData[8];
+uint32_t TxMailbox;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -103,20 +113,73 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   Display_Init();
-  Display_DrawString("test", FONT24, 0, 0);
-  Display_DrawString("test", FONT24, 50, 50);
-  Display_DrawString("test", FONT24, 100, 100);
+  Display_DrawString(":^)", FONT24, 0, 0);
   Display_Update();
+
+  FilterConfig.FilterBank = 15;
+  FilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
+  FilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
+  FilterConfig.FilterIdLow = 0x0000;
+  FilterConfig.FilterIdHigh = 0x0000;
+  FilterConfig.FilterMaskIdLow = 0x0000;
+  FilterConfig.FilterMaskIdHigh = 0x0000;
+  FilterConfig.FilterFIFOAssignment = CAN_RX_FIFO0;
+  FilterConfig.FilterActivation = CAN_FILTER_ENABLE;
+  FilterConfig.SlaveStartFilterBank = 14;
+
+  // Configure filter settings
+  if (HAL_CAN_ConfigFilter(&hcan2, &FilterConfig) != HAL_OK) {
+    Error_Handler();
+  }
+  // Start CAN
+  if (HAL_CAN_Start(&hcan2) != HAL_OK) {
+    Error_Handler();
+  }
+  // Enable Interrupts
+  if (HAL_CAN_ActivateNotification(&hcan2,
+      CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_TX_MAILBOX_EMPTY)
+      != HAL_OK) {
+    Error_Handler();
+  }
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  char status[] = "     ";
   while (1)
   {
-    /* USER CODE END WHILE */
+    status[0] = (HAL_CAN_IsTxMessagePending(&hcan2, CAN_TX_MAILBOX0 | CAN_TX_MAILBOX1 | CAN_TX_MAILBOX2)) ? 
+      (HAL_CAN_GetTxMailboxesFreeLevel(&hcan2) % 10) + '0' : ' ';
+    status[2] = (HAL_CAN_GetRxFifoFillLevel(&hcan2, CAN_RX_FIFO0) % 10) + '0';
+    status[4] = (HAL_CAN_GetRxFifoFillLevel(&hcan2, CAN_RX_FIFO1) % 10) + '0';
+    Display_DrawString(status, FONT24, 100, 100);
+    //Display_Update();
+    
+    // Test CAN transmit message
+    TxHeader.StdId = 0x321;
+    TxHeader.ExtId = 0x01;
+    TxHeader.RTR = CAN_RTR_DATA;
+    TxHeader.IDE = CAN_ID_STD;
+    TxHeader.DLC = DATALEN;
+    TxHeader.TransmitGlobalTime = DISABLE;
+    for (uint8_t i = 0; i < DATALEN; i++) {
+      TxData[i] = 'A';  // initialize transmit buffer to 'A'
+    }
 
-    /* USER CODE BEGIN 3 */
+    if (HAL_CAN_AddTxMessage(&hcan2, &TxHeader, TxData, &TxMailbox) != HAL_OK) {
+      Error_Handler();
+    }
+    // for (uint8_t i = 0; i < DATALEN; i++) {
+    //   TxData[i]++;
+    //   if (TxData[i] == 'Z'+1) TxData[i] = 'A';
+    // }
+
+    // if (display_updated == 1) {
+    //   display_updated = 0;
+    //   Display_Update();
+    // }
+    HAL_Delay(2000);
   }
   /* USER CODE END 3 */
 }
@@ -176,7 +239,7 @@ static void MX_CAN2_Init(void)
   /* USER CODE END CAN2_Init 1 */
   hcan2.Instance = CAN2;
   hcan2.Init.Prescaler = 8;
-  hcan2.Init.Mode = CAN_MODE_NORMAL;
+  hcan2.Init.Mode = CAN_MODE_LOOPBACK;  /* CAN_MODE_NORMAL or CAN_MODE_LOOPBACK */
   hcan2.Init.SyncJumpWidth = CAN_SJW_1TQ;
   hcan2.Init.TimeSeg1 = CAN_BS1_6TQ;
   hcan2.Init.TimeSeg2 = CAN_BS2_1TQ;
@@ -313,7 +376,16 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef* hcan) {
+  return;
+}
 
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef* hcan) {
+  Display_DrawString(":^)", FONT24, 50, 100);
+  HAL_CAN_GetRxMessage(&hcan2, CAN_RX_FIFO0, &RxHeader, RxData);
+  Display_DrawString((char*)RxData, FONT24, 50, 50);
+  Display_Update();
+}
 /* USER CODE END 4 */
 
 /**
@@ -325,6 +397,8 @@ void Error_Handler(void)
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
+  Display_DrawString("ERROR", FONT24, 0, 0);
+  Display_Update();
   while (1)
   {
   }

@@ -1,16 +1,87 @@
 // CAN Drivers
 
 #include "CANBus.h"
+#include <string.h>
 
+/**
+ * @brief Software FIFO for CAN Rx
+ * @note Copied from BPS
+ */
+#define FIFO_TYPE CANMSG_t
+#define FIFO_SIZE 32
+#define FIFO_NAME CAN_RxFifo
+#include "fifo.h"
+
+static CAN_RxFifo_t CAN_RxFifo;
 
 /**
  * @brief Data structures needed for HAL CAN operation
  */
-CAN_HandleTypeDef hcan2;
-CAN_RxHeaderTypeDef RxHeader;
-uint8_t RxData[8];
-uint32_t TxMailbox;
+static CAN_HandleTypeDef *HAL_CAN_2;
+static CAN_RxHeaderTypeDef RxHeader;
+static uint8_t RxData[8];
+static uint32_t TxMailbox;
 
+
+/** CAN Recieve
+ * @brief Convert a raw CAN message to CANMSG_t and add to the RxFifo
+ * 
+ * @param header RxHeader from CAN message
+ * @param data RxData from CAN message
+ * @return HAL_StatusTypeDef - HAL_OK if message was parsed correctly
+ * @return HAL_StatusTypeDef - HAL_ERROR if message ID does not match known IDs
+ */
+static HAL_StatusTypeDef CAN_Recieve(CAN_RxHeaderTypeDef *rx_header, uint8_t *rx_data) {
+    CANMSG_t canmessage;
+    canmessage.id = rx_header->StdId;
+
+    switch (canmessage.id) {
+    // Handle messages with one byte of data
+    case TRIP:
+    case ALL_CLEAR:
+    case CONTACTOR_STATE:
+    case WDOG_TRIGGERED:
+    case CAN_ERROR:
+    case CHARGE_ENABLE:
+        memcpy(
+            &(canmessage.payload.data.b),
+            rx_data,
+            sizeof(canmessage.payload.data.b));
+        break;
+
+    // Handle messages with 4 byte data
+    case CURRENT_DATA:
+    case SOC_DATA:
+        memcpy(
+            &(canmessage.payload.data.w),
+            rx_data,
+            sizeof(canmessage.payload.data.b));
+        break;
+
+    // Handle messages with idx + 4 byte data
+    case VOLT_DATA:
+    case TEMP_DATA:
+        canmessage.payload.idx = rx_data[0];
+        memcpy(
+            &(canmessage.payload.data.w),
+            &(rx_data[1]),
+            sizeof(canmessage.payload.data.w));
+        break;
+
+    // Handle invalid messages
+    default:
+        return HAL_ERROR;	// Do nothing if invalid
+    }
+
+    // Add message to FIFO
+    if (CAN_RxFifo_is_full(&CAN_RxFifo)) {
+        // If Rx FIFO is full then the most recent message is replaced
+        CANMSG_t discard_canmessage;
+        CAN_RxFifo_popback(&CAN_RxFifo, &discard_canmessage);
+    }
+    CAN_RxFifo_put(&CAN_RxFifo, canmessage);
+    return HAL_OK;
+}
 
 /** MX CAN2 Init
   * @brief CAN2 Initialization Function
@@ -20,20 +91,20 @@ uint32_t TxMailbox;
   * @return HAL_StatusTypeDef - Status of CAN initialization
   */
 static HAL_StatusTypeDef MX_CAN2_Init(uint32_t mode) {
-    hcan2.Instance = CAN2;
-    hcan2.Init.Prescaler = 8;
-    hcan2.Init.Mode = mode;  /* CAN_MODE_NORMAL or CAN_MODE_LOOPBACK */
-    hcan2.Init.SyncJumpWidth = CAN_SJW_1TQ;
-    hcan2.Init.TimeSeg1 = CAN_BS1_6TQ;
-    hcan2.Init.TimeSeg2 = CAN_BS2_1TQ;
-    hcan2.Init.TimeTriggeredMode = DISABLE;
-    hcan2.Init.AutoBusOff = DISABLE;
-    hcan2.Init.AutoWakeUp = DISABLE;
-    hcan2.Init.AutoRetransmission = DISABLE;
-    hcan2.Init.ReceiveFifoLocked = DISABLE;
-    hcan2.Init.TransmitFifoPriority = DISABLE;
+    HAL_CAN_2->Instance = CAN2;
+    HAL_CAN_2->Init.Prescaler = 8;
+    HAL_CAN_2->Init.Mode = mode;  /* CAN_MODE_NORMAL or CAN_MODE_LOOPBACK */
+    HAL_CAN_2->Init.SyncJumpWidth = CAN_SJW_1TQ;
+    HAL_CAN_2->Init.TimeSeg1 = CAN_BS1_6TQ;
+    HAL_CAN_2->Init.TimeSeg2 = CAN_BS2_1TQ;
+    HAL_CAN_2->Init.TimeTriggeredMode = DISABLE;
+    HAL_CAN_2->Init.AutoBusOff = DISABLE;
+    HAL_CAN_2->Init.AutoWakeUp = DISABLE;
+    HAL_CAN_2->Init.AutoRetransmission = DISABLE;
+    HAL_CAN_2->Init.ReceiveFifoLocked = DISABLE;
+    HAL_CAN_2->Init.TransmitFifoPriority = DISABLE;
 
-    return HAL_CAN_Init(&hcan2);
+    return HAL_CAN_Init(HAL_CAN_2);
 }
 
 
@@ -43,7 +114,8 @@ static HAL_StatusTypeDef MX_CAN2_Init(uint32_t mode) {
  * @param mode CAN_MODE_NORMAL or CAN_MODE_LOOPBACK for operation mode
  * @return HAL_StatusTypeDef - Status of CAN configuration
  */
-HAL_StatusTypeDef CAN_Config(uint32_t mode) {
+HAL_StatusTypeDef CAN_Config(CAN_HandleTypeDef *hcan, uint32_t mode) {
+    HAL_CAN_2 = hcan;
     HAL_StatusTypeDef configstatus = MX_CAN2_Init(mode);
     if (configstatus != HAL_OK) return configstatus;
 
@@ -62,24 +134,27 @@ HAL_StatusTypeDef CAN_Config(uint32_t mode) {
     filterconfig.SlaveStartFilterBank = 14;
 
     // Setup filter
-    configstatus = HAL_CAN_ConfigFilter(&hcan2, &filterconfig);
+    configstatus = HAL_CAN_ConfigFilter(HAL_CAN_2, &filterconfig);
     if (configstatus != HAL_OK) return configstatus;
 
     // Start actual CAN
-    configstatus = HAL_CAN_Start(&hcan2);
+    configstatus = HAL_CAN_Start(HAL_CAN_2);
     if (configstatus != HAL_OK) return configstatus;
 
     // Enable interrupt for pending rx message
-    configstatus = HAL_CAN_ActivateNotification(&hcan2, 
+    configstatus = HAL_CAN_ActivateNotification(HAL_CAN_2, 
         (RxFifo == CAN_RX_FIFO0) ? 
             CAN_IT_RX_FIFO0_MSG_PENDING : CAN_IT_RX_FIFO1_MSG_PENDING);
     
+    // Setup software Rx Fifo
+    CAN_RxFifo_renew(&CAN_RxFifo);
+
     return configstatus;
 }
 
-
 /** CAN Transmit Message
  * @brief Transmit message over CAN
+ * @note This is really basic and does not check for a full transmit Mailbox
  * 
  * @param StdId Message ID (Standard)
  * @param TxData Data to transmit
@@ -100,7 +175,32 @@ HAL_StatusTypeDef CAN_TransmitMessage(
     txheader.DLC = len;
     txheader.TransmitGlobalTime = DISABLE;
 
-    return HAL_CAN_AddTxMessage(&hcan2, &txheader, TxData, &TxMailbox);
+    return HAL_CAN_AddTxMessage(HAL_CAN_2, &txheader, TxData, &TxMailbox);
+}
+
+/** CAN Retrieve Message
+ * @brief Retrieve a message from the CAN Rx software FIFO
+ * 
+ * @param canmessage CANMSG_t to put message contents in
+ * @return HAL_StatusTypeDef - HAL_OK if message was retrieved successfully
+ * @return HAL_StatusTypeDef - HAL_ERROR if no messages are present
+ */
+HAL_StatusTypeDef CAN_RetrieveMessage(CANMSG_t *canmessage) {
+    if (CAN_RxFifo_is_empty(&CAN_RxFifo)) {
+        return HAL_ERROR;
+    }
+    CAN_RxFifo_get(&CAN_RxFifo, canmessage);
+    return HAL_OK;
+}
+
+/** CAN Is Rx Fifo Empty
+ * @brief Check if CAN Rx software FIFO is empty
+ * 
+ * @return true - FIFO is empty
+ * @return false - FIFO is not empty
+ */
+bool CAN_IsRxFifoEmpty() {
+    return CAN_RxFifo_is_empty(&CAN_RxFifo);
 }
 
 /**
@@ -109,6 +209,7 @@ HAL_StatusTypeDef CAN_TransmitMessage(
  */
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef* hcan) {
     HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, RxData);
+    CAN_Recieve(&RxHeader, RxData);
 }
 
 /**
@@ -117,4 +218,5 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef* hcan) {
  */
 void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef* hcan) {
     HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO1, &RxHeader, RxData);
+    CAN_Recieve(&RxHeader, RxData);
 }

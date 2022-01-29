@@ -43,6 +43,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 
+CAN_HandleTypeDef hcan2;
+
 SPI_HandleTypeDef hspi1;
 
 UART_HandleTypeDef huart6;
@@ -95,7 +97,7 @@ int main(void)
   MX_GPIO_Init();
   MX_SPI1_Init();
   MX_USART6_UART_Init();
-  if (CAN_Config(CAN_MODE_LOOPBACK) != HAL_OK) {
+  if (CAN_Config(&hcan2, CAN_MODE_LOOPBACK) != HAL_OK) {
     Error_Handler();
   }
   /* USER CODE BEGIN 2 */
@@ -103,14 +105,22 @@ int main(void)
   Display_Init();
   Display_DrawString("Loading...", FONT24, 0, 0);
   Display_Update();
+  Display_Clear();
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  uint8_t tx[4] = {0x0A, 0xBC, 0xDE, 0xF0};
   while (1)
   {
-
+    CAN_TransmitMessage(CURRENT_DATA, tx, 4);
+    if (!CAN_IsRxFifoEmpty()) {
+      CANMSG_t canmessage;
+      CAN_RetrieveMessage(&canmessage);
+      Display_DrawString("CAN Message Recieved", FONT16, 0, 50);
+      Display_Update();
+    }
     HAL_Delay(2000);
   }
   /* USER CODE END 3 */

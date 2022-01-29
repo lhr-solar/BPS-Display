@@ -62,7 +62,8 @@ Display/Config/DEV_Config.c \
 Display/e-Paper/EPD_2in7.c \
 Display/GUI/GUI_Paint.c \
 $(wildcard Display/Fonts/*.c) \
-$(wildcard Display/DisplayWrapper/Src/*.c)
+$(wildcard Display/DisplayWrapper/Src/*.c) \
+$(wildcard CANBus/Src/*.c)
 
 # ASM sources
 ASM_SOURCES =  \
@@ -131,7 +132,8 @@ C_INCLUDES =  \
 -IDisplay/Examples \
 -IDisplay/Fonts \
 -IDisplay/GUI \
--IDisplay/DisplayWrapper/Inc
+-IDisplay/DisplayWrapper/Inc \
+-ICANBus/Inc
 
 
 # compile gcc flags

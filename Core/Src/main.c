@@ -17,17 +17,14 @@
   ******************************************************************************
   */
 
-/* Display functions */
-#include "display_wrapper.h"
-#include "CANBus.h"
-
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "display_wrapper.h"
+#include "CANBus.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -45,7 +42,6 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-CAN_HandleTypeDef hcan2;
 
 SPI_HandleTypeDef hspi1;
 
@@ -53,16 +49,11 @@ UART_HandleTypeDef huart6;
 
 /* USER CODE BEGIN PV */
 volatile uint8_t display_updated = 0; // semaphore set when the display buffer is updated
-
-CAN_RxHeaderTypeDef RxHeader;
-uint8_t RxData[8];
-uint32_t TxMailbox;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_CAN2_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_USART6_UART_Init(void);
 /* USER CODE BEGIN PFP */
@@ -102,13 +93,15 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_CAN2_Init();
   MX_SPI1_Init();
   MX_USART6_UART_Init();
+  if (CAN_Config(CAN_MODE_LOOPBACK) != HAL_OK) {
+    Error_Handler();
+  }
   /* USER CODE BEGIN 2 */
 
   Display_Init();
-  Display_DrawString(":^)", FONT24, 0, 0);
+  Display_DrawString("Loading...", FONT24, 0, 0);
   Display_Update();
 
   /* USER CODE END 2 */
@@ -159,43 +152,6 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-}
-
-/**
-  * @brief CAN2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_CAN2_Init(void)
-{
-
-  /* USER CODE BEGIN CAN2_Init 0 */
-
-  /* USER CODE END CAN2_Init 0 */
-
-  /* USER CODE BEGIN CAN2_Init 1 */
-
-  /* USER CODE END CAN2_Init 1 */
-  hcan2.Instance = CAN2;
-  hcan2.Init.Prescaler = 8;
-  hcan2.Init.Mode = CAN_MODE_LOOPBACK;  /* CAN_MODE_NORMAL or CAN_MODE_LOOPBACK */
-  hcan2.Init.SyncJumpWidth = CAN_SJW_1TQ;
-  hcan2.Init.TimeSeg1 = CAN_BS1_6TQ;
-  hcan2.Init.TimeSeg2 = CAN_BS2_1TQ;
-  hcan2.Init.TimeTriggeredMode = DISABLE;
-  hcan2.Init.AutoBusOff = DISABLE;
-  hcan2.Init.AutoWakeUp = DISABLE;
-  hcan2.Init.AutoRetransmission = DISABLE;
-  hcan2.Init.ReceiveFifoLocked = DISABLE;
-  hcan2.Init.TransmitFifoPriority = DISABLE;
-  if (HAL_CAN_Init(&hcan2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN CAN2_Init 2 */
-
-  /* USER CODE END CAN2_Init 2 */
-
 }
 
 /**
@@ -315,13 +271,8 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef* hcan) {
-  return;
-}
 
-void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef* hcan) {
-  HAL_CAN_GetRxMessage(&hcan2, CAN_RX_FIFO0, &RxHeader, RxData);
-}
+
 /* USER CODE END 4 */
 
 /**

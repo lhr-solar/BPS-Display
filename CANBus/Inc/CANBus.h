@@ -4,14 +4,17 @@
 // CAN Drivers
 
 /**
- * External variables required are:
- * (CAN_RxHeaderTypeDef) RxHeader
- * (uint8_t*) 8-byte Rx buffer
- * (uint32_t) TxMailbox
+ * Initialize and configure a singular CANBus
+ * Currently set up for CAN2
  */
 
-#include "stm32f4xx_hal_can.h"
+#include "stm32f4xx.h"
 
+/**
+ * Filter and RX_FIFO configurations
+ * Set FILTER_MASK_ID_LOW/HIGH to 0 to recieve all can messages
+ */
+#define CAN_RX_FIFO_NUMBER      CAN_RX_FIFO0
 #define FILTER_BANK             14          /* 0 - 13 for CAN1, 14 - 27 for CAN2 */
 #define FILTER_ID_LOW           0x0000
 #define FILTER_ID_HIGH          0x0000
@@ -19,34 +22,25 @@
 #define FILTER_MASK_ID_HIGH     0x0000
 
 /** CAN Config
- * @brief Configure CAN filters/interrupts and start CAN
+ * @brief Initialize CAN, configure CAN filters/interrupts, and start CAN
  * 
- * @param hcan Initialized CAN#
- * @param RxData Buffer to store recieved data
- * @param RxFifo Fifo to use for recieving messages
+ * @param mode CAN_MODE_NORMAL or CAN_MODE_LOOPBACK for operation mode
  * @return HAL_StatusTypeDef - Status of CAN configuration
  */
-HAL_StatusTypeDef CAN_Config(
-        CAN_HandleTypeDef *hcan,
-        uint8_t *RxData,
-        uint32_t RxFifo);
+HAL_StatusTypeDef CAN_Config(uint32_t mode);
 
 /** CAN Transmit Message
  * @brief Transmit message over CAN
  * 
- * @param hcan CAN#
  * @param StdId Message ID (Standard)
  * @param TxData Data to transmit
  * @param len Length of data (Bytes) to transmit (MAX 8B)
- * @param TxMailbox Pointer to TxMailbox
  * @return HAL_StatusTypeDef - Status of CAN configuration
  */
 HAL_StatusTypeDef CAN_TransmitMessage(
-        CAN_HandleTypeDef *hcan,
         uint32_t StdId,
         uint8_t *TxData,
-        uint8_t len,
-        uint32_t *TxMailbox);
+        uint8_t len);
 
 
 #endif /* CAN_BUS_H */

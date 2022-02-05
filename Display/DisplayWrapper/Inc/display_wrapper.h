@@ -5,6 +5,8 @@
 
 #include "EPD_2in7.h"
 #include "GUI_Paint.h"
+#include "CANBus.h"
+#include "stm32f4xx.h"
 
 /** Display Coordinates : (x,y)
  * ┌────────────────────────────────────────┐
@@ -64,4 +66,28 @@ void Display_DrawString(const char* text, sFONT* fontsize,
                         UWORD xcoord, UWORD ycoord);
 
 
+/** Draw Decimal
+ * @brief 
+ * Draw a decimal number on the image buffer
+ * 
+ * @param num The number to display
+ * @param fontsize Size of text
+ * @param xcoord x-coordinate of bottom left of number
+ * @param ycoord y-coordinate of bottom left of number
+ */
+void Display_DrawDec(int32_t num, sFONT* fontsize,
+                        UWORD xcoord, UWORD ycoord);
+
+
+/** Draw CAN Message
+ * @brief 
+ * Draw a formatted CAN message
+ * 
+ * @param canmessage pointer to single CAN message or array of CAN messages
+ *                   if data spans multiple messages
+ * @param xcoord x-coordinate of bottom left of message
+ * @param ycoord y-coordinate of bottom left of message
+ */
+HAL_StatusTypeDef Display_DrawCANMessage(CANMSG_t *canmessage, sFONT* fontsize,
+                        UWORD xcoord, UWORD ycoord);
 #endif /* DISPLAY_WRAPPER_H */

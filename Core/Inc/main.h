@@ -58,24 +58,24 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define Btn_1_Pin GPIO_PIN_0
-#define Btn_1_GPIO_Port GPIOB
-#define Btn_2_Pin GPIO_PIN_1
-#define Btn_2_GPIO_Port GPIOB
-#define Btn_3_Pin GPIO_PIN_2
-#define Btn_3_GPIO_Port GPIOB
+#define BTN_1_Pin GPIO_PIN_0
+#define BTN_1_GPIO_Port GPIOB
+#define BTN_2_Pin GPIO_PIN_1
+#define BTN_2_GPIO_Port GPIOB
+#define BTN_3_Pin GPIO_PIN_2
+#define BTN_3_GPIO_Port GPIOB
 #define SPI1_CS_Pin GPIO_PIN_8
 #define SPI1_CS_GPIO_Port GPIOA
-#define Dsp_DC_Pin GPIO_PIN_9
-#define Dsp_DC_GPIO_Port GPIOA
-#define Dsp_RST_Pin GPIO_PIN_10
-#define Dsp_RST_GPIO_Port GPIOA
-#define Dsp_BUSY_Pin GPIO_PIN_11
-#define Dsp_BUSY_GPIO_Port GPIOA
+#define DSP_DC_Pin GPIO_PIN_9
+#define DSP_DC_GPIO_Port GPIOA
+#define DSP_RST_Pin GPIO_PIN_10
+#define DSP_RST_GPIO_Port GPIOA
+#define DSP_BUSY_Pin GPIO_PIN_11
+#define DSP_BUSY_GPIO_Port GPIOA
 #define SUPP_CHECK_Pin GPIO_PIN_11
 #define SUPP_CHECK_GPIO_Port GPIOC
-#define Btn_4_Pin GPIO_PIN_3
-#define Btn_4_GPIO_Port GPIOB
+#define BTN_4_Pin GPIO_PIN_3
+#define BTN_4_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

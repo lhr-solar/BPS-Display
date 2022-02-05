@@ -16,13 +16,15 @@
   *
   ******************************************************************************
   */
+
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "display_wrapper.h"
+#include "CANBus.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -40,6 +42,7 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+
 CAN_HandleTypeDef hcan2;
 
 SPI_HandleTypeDef hspi1;
@@ -47,13 +50,12 @@ SPI_HandleTypeDef hspi1;
 UART_HandleTypeDef huart6;
 
 /* USER CODE BEGIN PV */
-
+volatile uint8_t display_updated = 0; // semaphore set when the display buffer is updated
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_CAN2_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_USART6_UART_Init(void);
 /* USER CODE BEGIN PFP */
@@ -88,25 +90,38 @@ int main(void)
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-
+  
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_CAN2_Init();
   MX_SPI1_Init();
   MX_USART6_UART_Init();
+  if (CAN_Config(&hcan2, CAN_MODE_LOOPBACK) != HAL_OK) {
+    Error_Handler();
+  }
   /* USER CODE BEGIN 2 */
+
+  Display_Init();
+  Display_DrawString("Loading...", FONT24, 0, 0);
+  Display_Update();
+  Display_Clear();
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  uint8_t tx[4] = {0x0A, 0xBC, 0xDE, 0xF0};
   while (1)
   {
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
+    CAN_TransmitMessage(CURRENT_DATA, tx, 4);
+    if (!CAN_IsRxFifoEmpty()) {
+      CANMSG_t canmessage;
+      CAN_RetrieveMessage(&canmessage);
+      Display_DrawString("CAN Message Recieved", FONT16, 0, 50);
+      Display_Update();
+    }
+    HAL_Delay(2000);
   }
   /* USER CODE END 3 */
 }
@@ -147,43 +162,6 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-}
-
-/**
-  * @brief CAN2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_CAN2_Init(void)
-{
-
-  /* USER CODE BEGIN CAN2_Init 0 */
-
-  /* USER CODE END CAN2_Init 0 */
-
-  /* USER CODE BEGIN CAN2_Init 1 */
-
-  /* USER CODE END CAN2_Init 1 */
-  hcan2.Instance = CAN2;
-  hcan2.Init.Prescaler = 16;
-  hcan2.Init.Mode = CAN_MODE_NORMAL;
-  hcan2.Init.SyncJumpWidth = CAN_SJW_1TQ;
-  hcan2.Init.TimeSeg1 = CAN_BS1_1TQ;
-  hcan2.Init.TimeSeg2 = CAN_BS2_1TQ;
-  hcan2.Init.TimeTriggeredMode = DISABLE;
-  hcan2.Init.AutoBusOff = DISABLE;
-  hcan2.Init.AutoWakeUp = DISABLE;
-  hcan2.Init.AutoRetransmission = DISABLE;
-  hcan2.Init.ReceiveFifoLocked = DISABLE;
-  hcan2.Init.TransmitFifoPriority = DISABLE;
-  if (HAL_CAN_Init(&hcan2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN CAN2_Init 2 */
-
-  /* USER CODE END CAN2_Init 2 */
-
 }
 
 /**
@@ -273,26 +251,26 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOC_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, SPI1_CS_Pin|Dsp_DC_Pin|Dsp_RST_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, SPI1_CS_Pin|DSP_DC_Pin|DSP_RST_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : Btn_1_Pin Btn_2_Pin Btn_3_Pin Btn_4_Pin */
-  GPIO_InitStruct.Pin = Btn_1_Pin|Btn_2_Pin|Btn_3_Pin|Btn_4_Pin;
+  /*Configure GPIO pins : BTN_1_Pin BTN_2_Pin BTN_3_Pin BTN_4_Pin */
+  GPIO_InitStruct.Pin = BTN_1_Pin|BTN_2_Pin|BTN_3_Pin|BTN_4_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : SPI1_CS_Pin Dsp_DC_Pin Dsp_RST_Pin */
-  GPIO_InitStruct.Pin = SPI1_CS_Pin|Dsp_DC_Pin|Dsp_RST_Pin;
+  /*Configure GPIO pins : SPI1_CS_Pin DSP_DC_Pin DSP_RST_Pin */
+  GPIO_InitStruct.Pin = SPI1_CS_Pin|DSP_DC_Pin|DSP_RST_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : Dsp_BUSY_Pin */
-  GPIO_InitStruct.Pin = Dsp_BUSY_Pin;
+  /*Configure GPIO pin : DSP_BUSY_Pin */
+  GPIO_InitStruct.Pin = DSP_BUSY_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(Dsp_BUSY_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(DSP_BUSY_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : SUPP_CHECK_Pin */
   GPIO_InitStruct.Pin = SUPP_CHECK_Pin;
@@ -303,6 +281,7 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
 
 /* USER CODE END 4 */
 
@@ -315,6 +294,8 @@ void Error_Handler(void)
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
+  Display_DrawString("ERROR", FONT24, 0, 0);
+  Display_Update();
   while (1)
   {
   }
@@ -333,7 +314,7 @@ void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+	 ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

@@ -1,18 +1,16 @@
 // CAN Drivers
 
 #include "CANBus.h"
+#include "config.h"
 #include <string.h>
 
 /**
- * @brief Software FIFO for CAN Rx
- * @note Copied from BPS
+ * @brief CAN recieve data buffers
  */
-#define FIFO_TYPE CANMSG_t
-#define FIFO_SIZE 32
-#define FIFO_NAME CAN_RxFifo
-#include "fifo.h"
-
-static CAN_RxFifo_t CAN_RxFifo;
+CANMSG_t BPS_AllClear, BPS_Trip, BPS_ContactorState;
+CANMSG_t BPS_Voltage[NUM_BATTERY_MODULES];
+CANMSG_t BPS_Temperature[NUM_TEMPERATURE_SENSORS];
+CANMSG_t BPS_Current;
 
 /**
  * @brief Data structures needed for HAL CAN operation
@@ -33,53 +31,64 @@ static uint32_t TxMailbox;
  */
 static HAL_StatusTypeDef CAN_Recieve(CAN_RxHeaderTypeDef *rx_header, uint8_t *rx_data) {
     CANMSG_t canmessage;
+    CANMSG_t *messagedest = NULL;  // location to put message
     canmessage.id = rx_header->StdId;
 
     switch (canmessage.id) {
-    // Handle messages with one byte of data
-    case TRIP:
-    case ALL_CLEAR:
-    case CONTACTOR_STATE:
-    case WDOG_TRIGGERED:
-    case CAN_ERROR:
-    case CHARGE_ENABLE:
-        memcpy(
-            &(canmessage.payload.data.b),
-            rx_data,
-            sizeof(canmessage.payload.data.b));
-        break;
+        // Messages to discard
+        case WDOG_TRIGGERED:
+        case CAN_ERROR:
+        case CHARGE_ENABLE:
+        case SOC_DATA:
+            return HAL_ERROR;
 
-    // Handle messages with 4 byte data
-    case CURRENT_DATA:
-    case SOC_DATA:
-        memcpy(
-            &(canmessage.payload.data.w),
-            rx_data,
-            sizeof(canmessage.payload.data.b));
-        break;
+        // Handle messages with one byte of data
+        case TRIP:
+            messagedest = &BPS_Trip;
+        case ALL_CLEAR:
+            if (messagedest == NULL) {
+                messagedest = &BPS_AllClear;
+            }
+        case CONTACTOR_STATE:
+            if (messagedest == NULL) {
+                messagedest = &BPS_ContactorState;
+            }
+            memcpy(
+                &(canmessage.payload.data.b),
+                rx_data,
+                sizeof(canmessage.payload.data.b));
+            *messagedest = canmessage;
+            break;
 
-    // Handle messages with idx + 4 byte data
-    case VOLT_DATA:
-    case TEMP_DATA:
-        canmessage.payload.idx = rx_data[0];
-        memcpy(
-            &(canmessage.payload.data.w),
-            &(rx_data[1]),
-            sizeof(canmessage.payload.data.w));
-        break;
+        // Handle messages with 4 byte data
+        case CURRENT_DATA:
+            memcpy(
+                &(canmessage.payload.data.w),
+                rx_data,
+                sizeof(canmessage.payload.data.b));
+            BPS_Current = canmessage;
+            break;
 
-    // Handle invalid messages
-    default:
-        return HAL_ERROR;	// Do nothing if invalid
+        // Handle messages with idx + 4 byte data
+        case VOLT_DATA:
+            messagedest = BPS_Voltage;
+        case TEMP_DATA:
+            if (messagedest == NULL) {
+                messagedest = BPS_Temperature;
+            }
+            canmessage.payload.idx = rx_data[0];
+            memcpy(
+                &(canmessage.payload.data.w),
+                &(rx_data[1]),
+                sizeof(canmessage.payload.data.w));
+            messagedest[canmessage.payload.idx] = canmessage;
+            break;
+
+        // Handle invalid messages
+        default:
+            return HAL_ERROR;	// Do nothing if invalid
     }
-
-    // Add message to FIFO
-    if (CAN_RxFifo_is_full(&CAN_RxFifo)) {
-        // If Rx FIFO is full then the most recent message is replaced
-        CANMSG_t discard_canmessage;
-        CAN_RxFifo_popback(&CAN_RxFifo, &discard_canmessage);
-    }
-    CAN_RxFifo_put(&CAN_RxFifo, canmessage);
+    
     return HAL_OK;
 }
 
@@ -146,8 +155,33 @@ HAL_StatusTypeDef CAN_Config(CAN_HandleTypeDef *hcan, uint32_t mode) {
         (RxFifo == CAN_RX_FIFO0) ? 
             CAN_IT_RX_FIFO0_MSG_PENDING : CAN_IT_RX_FIFO1_MSG_PENDING);
     
-    // Setup software Rx Fifo
-    CAN_RxFifo_renew(&CAN_RxFifo);
+    // Zero-out data buffers
+    CANMSG_t emptymessage;
+    emptymessage.payload.data.w = 0;
+    
+    emptymessage.id = ALL_CLEAR;
+    BPS_AllClear = emptymessage;
+
+    emptymessage.id = TRIP;
+    BPS_Trip = emptymessage;
+
+    emptymessage.id = CONTACTOR_STATE;
+    BPS_ContactorState = emptymessage;
+
+    emptymessage.id = CURRENT_DATA;
+    BPS_Current = emptymessage;
+
+    emptymessage.id = VOLT_DATA;
+    for (uint8_t i = 0; i < NUM_BATTERY_MODULES; i++) {
+        emptymessage.payload.idx = i;
+        BPS_Voltage[i] = emptymessage;
+    }
+    
+    emptymessage.id = TEMP_DATA;
+    for (uint8_t i = 0; i < NUM_TEMPERATURE_SENSORS; i++) {
+        emptymessage.payload.idx = i;
+        BPS_Temperature[i] = emptymessage;
+    }
 
     return configstatus;
 }
@@ -178,29 +212,40 @@ HAL_StatusTypeDef CAN_TransmitMessage(
     return HAL_CAN_AddTxMessage(HAL_CAN_2, &txheader, TxData, &TxMailbox);
 }
 
-/** CAN Retrieve Message
- * @brief Retrieve a message from the CAN Rx software FIFO
- * 
- * @param canmessage CANMSG_t to put message contents in
- * @return HAL_StatusTypeDef - HAL_OK if message was retrieved successfully
- * @return HAL_StatusTypeDef - HAL_ERROR if no messages are present
- */
-HAL_StatusTypeDef CAN_RetrieveMessage(CANMSG_t *canmessage) {
-    if (CAN_RxFifo_is_empty(&CAN_RxFifo)) {
-        return HAL_ERROR;
-    }
-    CAN_RxFifo_get(&CAN_RxFifo, canmessage);
-    return HAL_OK;
-}
 
-/** CAN Is Rx Fifo Empty
- * @brief Check if CAN Rx software FIFO is empty
+/** CAN Retrieve Data
+ * @brief Retrieve last-updated data recieved on CAN
+ * @note Data can be:
+ *          ALL_CLEAR, TRIP, CONTACTOR_STATE
+ *          VOLT_DATA (all modules)
+ *          TEMP_DATA (all modules)
+ *          CURRENT_DATA
  * 
- * @return true - FIFO is empty
- * @return false - FIFO is not empty
+ * @param id (CANId_t) CAN ID of data to be fetched
+ * @return CANMSG_t* pointer to data, will be array in the case of volt/temp
  */
-bool CAN_IsRxFifoEmpty() {
-    return CAN_RxFifo_is_empty(&CAN_RxFifo);
+CANMSG_t *CAN_RetrieveData(CANId_t id) {
+    CANMSG_t *data_location;
+    switch (id) {
+        case TRIP:
+            data_location = &BPS_Trip;
+            break;
+        case ALL_CLEAR:
+            data_location = &BPS_AllClear;
+            break;
+        case CONTACTOR_STATE:
+            data_location = &BPS_ContactorState;
+            break;
+        case VOLT_DATA:
+            data_location = BPS_Voltage;
+        case TEMP_DATA:
+            data_location = BPS_Temperature;
+        case CURRENT_DATA:
+            data_location = &BPS_Current;
+        default:
+            data_location = NULL;
+    }
+    return data_location;
 }
 
 /**

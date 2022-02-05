@@ -85,21 +85,17 @@ HAL_StatusTypeDef CAN_TransmitMessage(
         uint8_t *TxData,
         uint8_t len);
 
-/** CAN Retrieve Message
- * @brief Retrieve a message from the CAN Rx software FIFO
+/** CAN Retrieve Data
+ * @brief Retrieve last-updated data recieved on CAN
+ * @note Data can be:
+ *          ALL_CLEAR, TRIP, CONTACTOR_STATE
+ *          VOLT_DATA (all modules)
+ *          TEMP_DATA (all modules)
+ *          CURRENT_DATA
  * 
- * @param canmessage CANMSG_t to put message contents in
- * @return HAL_StatusTypeDef - HAL_OK if message was retrieved successfully
- * @return HAL_StatusTypeDef - HAL_ERROR if no messages are present
+ * @param id (CANId_t) CAN ID of data to be fetched
+ * @return CANMSG_t* pointer to data, will be array in the case of volt/temp
  */
-HAL_StatusTypeDef CAN_RetrieveMessage(CANMSG_t *canmessage);
-
-/** CAN Is Rx Fifo Empty
- * @brief Check if CAN Rx software FIFO is empty
- * 
- * @return true - FIFO is empty
- * @return false - FIFO is not empty
- */
-bool CAN_IsRxFifoEmpty();
+CANMSG_t *CAN_RetrieveData(CANId_t id);
 
 #endif /* CAN_BUS_H */

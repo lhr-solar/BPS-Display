@@ -50,7 +50,7 @@ SPI_HandleTypeDef hspi1;
 UART_HandleTypeDef huart6;
 
 /* USER CODE BEGIN PV */
-volatile uint8_t display_updated = 0; // semaphore set when the display buffer is updated
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -115,12 +115,8 @@ int main(void)
   while (1)
   {
     CAN_TransmitMessage(CURRENT_DATA, tx, 4);
-    if (!CAN_IsRxFifoEmpty()) {
-      CANMSG_t canmessage;
-      CAN_RetrieveMessage(&canmessage);
-      Display_DrawString("CAN Message Recieved", FONT16, 0, 50);
-      Display_Update();
-    }
+    Display_DrawCANMessage(CAN_RetrieveData(CURRENT_DATA), FONT24, 20, 20);
+    Display_Update();
     HAL_Delay(2000);
   }
   /* USER CODE END 3 */

@@ -113,7 +113,7 @@ void Display_DrawDec(int32_t num, sFONT* fontsize,
  */
 HAL_StatusTypeDef Display_DrawCANMessage(CANMSG_t *canmessage, sFONT* fontsize,
                         UWORD xcoord, UWORD ycoord) {
-    uint8_t array_size;
+    uint8_t array_size = 0;
     switch (canmessage->id) {
         // Handle messages with one byte of data
         case TRIP:
@@ -137,7 +137,10 @@ HAL_StatusTypeDef Display_DrawCANMessage(CANMSG_t *canmessage, sFONT* fontsize,
         case VOLT_DATA:
             array_size = NUM_BATTERY_MODULES;
         case TEMP_DATA:
-            array_size = NUM_TEMPERATURE_SENSORS;
+            // set to temperature sensors only if it hasn't been set above
+            if (array_size == 0) {
+                array_size = NUM_TEMPERATURE_SENSORS;
+            }
 
             // find max and min of data
             uint32_t max = 0;

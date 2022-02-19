@@ -97,7 +97,7 @@ int main(void)
   MX_GPIO_Init();
   MX_SPI1_Init();
   MX_USART6_UART_Init();
-  if (CAN_Config(&hcan2, CAN_MODE_LOOPBACK) != HAL_OK) {
+  if (CAN_Config(&hcan2, CAN_MODE_NORMAL) != HAL_OK) {
     Error_Handler();
   }
   /* USER CODE BEGIN 2 */
@@ -111,11 +111,14 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  uint8_t tx[4] = {0x0A, 0xBC, 0xDE, 0xF0};
   while (1)
   {
-    CAN_TransmitMessage(CURRENT_DATA, tx, 4);
-    Display_DrawCANMessage(CAN_RetrieveData(CURRENT_DATA), FONT24, 20, 20);
+    Display_DrawString("TEMP:", FONT16, 0, 0);
+    Display_DrawString("VOLT:", FONT16, 0, 60);
+    Display_DrawString("CURR:", FONT16, 0, 120);
+    Display_DrawCANMessage(CAN_RetrieveData(TEMP_DATA), FONT24, 60, 0);
+    Display_DrawCANMessage(CAN_RetrieveData(VOLT_DATA), FONT24, 60, 60);
+    Display_DrawCANMessage(CAN_RetrieveData(CURRENT_DATA), FONT24, 60, 120);
     Display_Update();
     HAL_Delay(2000);
   }

@@ -122,15 +122,17 @@ HAL_StatusTypeDef Display_DrawCANMessage(CANMSG_t *canmessage, sFONT* fontsize,
         case WDOG_TRIGGERED:
         case CAN_ERROR:
         case CHARGE_ENABLE: ;
-            uint8_t data_byte = canmessage->payload.data.b;
-            Display_DrawDec(data_byte, fontsize, xcoord, ycoord);
+            uint32_t data_byte = canmessage->payload.data.b;
+            sprintf(out_string_buffer, "%lu", data_byte);
+            Display_DrawString(out_string_buffer, fontsize, xcoord, ycoord);
             break;
 
         // Handle messages with 4 byte data
         case CURRENT_DATA:
         case SOC_DATA: ;
             uint32_t data_word = canmessage->payload.data.w;
-            Display_DrawDec(data_word, fontsize, xcoord, ycoord);
+            sprintf(out_string_buffer, "%lu", data_word);
+            Display_DrawString(out_string_buffer, fontsize, xcoord, ycoord);
             break;
 
         // Handle messages with idx + 4 byte data
@@ -147,7 +149,7 @@ HAL_StatusTypeDef Display_DrawCANMessage(CANMSG_t *canmessage, sFONT* fontsize,
             uint32_t min = UINT32_MAX;
             for (uint8_t i = 0; i < array_size; i++) {
                 if (i != canmessage[i].payload.idx) {
-                    return HAL_ERROR;
+                    // return HAL_ERROR;
                 }
                 uint32_t data = canmessage[i].payload.data.w;
                 if (data > max) {
@@ -167,6 +169,8 @@ HAL_StatusTypeDef Display_DrawCANMessage(CANMSG_t *canmessage, sFONT* fontsize,
 
             break;
         default :
+            sprintf(out_string_buffer, "CAN ID Error: %04X", canmessage->id);
+            Display_DrawString(out_string_buffer, fontsize, xcoord, ycoord);
             return HAL_ERROR;
     }
 

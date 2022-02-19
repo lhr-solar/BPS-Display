@@ -238,12 +238,16 @@ CANMSG_t *CAN_RetrieveData(CANId_t id) {
             break;
         case VOLT_DATA:
             data_location = BPS_Voltage;
+            break;
         case TEMP_DATA:
             data_location = BPS_Temperature;
+            break;
         case CURRENT_DATA:
             data_location = &BPS_Current;
+            break;
         default:
             data_location = NULL;
+            break;
     }
     return data_location;
 }

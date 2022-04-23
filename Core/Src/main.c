@@ -108,19 +108,33 @@ int main(void)
   Display_Clear();
 
   /* USER CODE END 2 */
-
+  uint8_t cantx[8] = {69};
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    Display_DrawString("TEMP:", FONT16, 0, 0);
-    Display_DrawString("VOLT:", FONT16, 0, 60);
-    Display_DrawString("CURR:", FONT16, 0, 120);
-    Display_DrawCANMessage(CAN_RetrieveData(TEMP_DATA), FONT24, 60, 0);
-    Display_DrawCANMessage(CAN_RetrieveData(VOLT_DATA), FONT24, 60, 60);
-    Display_DrawCANMessage(CAN_RetrieveData(CURRENT_DATA), FONT24, 60, 120);
+    Paint_Clear(WHITE);
+    Display_DrawString("Starting Transmission", FONT16, 0, 0);
     Display_Update();
-    HAL_Delay(2000);
+    for (int i = 0; i < 20; i++) {
+      CAN_TransmitMessage(CHARGE_ENABLE, cantx, 1);
+      HAL_Delay(400);
+    }
+    
+    HAL_Delay(200);
+    Paint_Clear(WHITE);
+    Display_DrawString("Watchdog Tripped", FONT16, 0, 0);
+    Display_Update();
+
+    for (int i = 0; i < 20; i++) {
+      CAN_TransmitMessage(CHARGE_ENABLE, cantx, 1);
+      HAL_Delay(400);
+    }
+    Paint_Clear(WHITE);
+    Display_DrawString("Reset", FONT16, 0, 0);
+    Display_Update();
+
+    HAL_Delay(2000);  // Wait for display
   }
   /* USER CODE END 3 */
 }

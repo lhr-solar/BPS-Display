@@ -127,6 +127,13 @@ HAL_StatusTypeDef Display_DrawCANMessage(CANMSG_t *canmessage, sFONT* fontsize,
             Display_DrawString(out_string_buffer, fontsize, xcoord, ycoord);
             break;
 
+        // Handle messageds with 2 byte data
+        case SUPPLEMENTAL_VOLTAGE: ;
+            uint16_t data_half = canmessage->payload.data.h;
+            sprintf(out_string_buffer, "%u.%u", data_half / 1000, data_half % 1000);
+            Display_DrawString(out_string_buffer, fontsize, xcoord, ycoord);
+            break;
+
         // Handle messages with 4 byte data
         case CURRENT_DATA:
         case SOC_DATA: ;

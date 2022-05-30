@@ -113,14 +113,18 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    Display_DrawString("TEMP:", FONT16, 0, 0);
-    Display_DrawString("VOLT:", FONT16, 0, 60);
-    Display_DrawString("CURR:", FONT16, 0, 120);
-    Display_DrawCANMessage(CAN_RetrieveData(TEMP_DATA), FONT24, 60, 0);
-    Display_DrawCANMessage(CAN_RetrieveData(VOLT_DATA), FONT24, 60, 60);
-    Display_DrawCANMessage(CAN_RetrieveData(CURRENT_DATA), FONT24, 60, 120);
+    Display_DrawString("SUPP VOLT:", FONT16, 0, 0);
+    Display_DrawString("TEMP:", FONT16, 0, 50);
+    Display_DrawString("VOLT:", FONT16, 0, 100);
+    Display_DrawString("CURR:", FONT16, 0, 150);
+    
+    Display_DrawCANMessage(CAN_RetrieveData(SUPPLEMENTAL_VOLTAGE), FONT24, 120, 0);
+    Display_DrawCANMessage(CAN_RetrieveData(TEMP_DATA), FONT24, 60, 50);
+    Display_DrawCANMessage(CAN_RetrieveData(VOLT_DATA), FONT24, 60, 100);
+    Display_DrawCANMessage(CAN_RetrieveData(CURRENT_DATA), FONT24, 60, 150);
     Display_Update();
-    HAL_Delay(2000);
+    HAL_Delay(10000);
+    Display_Clear();
   }
   /* USER CODE END 3 */
 }

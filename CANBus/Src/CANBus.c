@@ -11,6 +11,7 @@ CANMSG_t BPS_AllClear, BPS_Trip, BPS_ContactorState;
 CANMSG_t BPS_Voltage[NUM_BATTERY_MODULES];
 CANMSG_t BPS_Temperature[NUM_TEMPERATURE_SENSORS];
 CANMSG_t BPS_Current;
+CANMSG_t Supplemental_Voltage;
 
 /**
  * @brief Data structures needed for HAL CAN operation
@@ -60,12 +61,21 @@ static HAL_StatusTypeDef CAN_Recieve(CAN_RxHeaderTypeDef *rx_header, uint8_t *rx
             *messagedest = canmessage;
             break;
 
+        // Handle messages with 2 byte data
+        case SUPPLEMENTAL_VOLTAGE:
+            memcpy(
+                &(canmessage.payload.data.h),
+                rx_data,
+                sizeof(canmessage.payload.data.h));
+            Supplemental_Voltage = canmessage;
+            break;
+
         // Handle messages with 4 byte data
         case CURRENT_DATA:
             memcpy(
                 &(canmessage.payload.data.w),
                 rx_data,
-                sizeof(canmessage.payload.data.b));
+                sizeof(canmessage.payload.data.w));
             BPS_Current = canmessage;
             break;
 
@@ -171,6 +181,9 @@ HAL_StatusTypeDef CAN_Config(CAN_HandleTypeDef *hcan, uint32_t mode) {
     emptymessage.id = CURRENT_DATA;
     BPS_Current = emptymessage;
 
+    emptymessage.id = SUPPLEMENTAL_VOLTAGE;
+    Supplemental_Voltage = emptymessage;
+
     emptymessage.id = VOLT_DATA;
     for (uint8_t i = 0; i < NUM_BATTERY_MODULES; i++) {
         emptymessage.payload.idx = i;
@@ -244,6 +257,9 @@ CANMSG_t *CAN_RetrieveData(CANId_t id) {
             break;
         case CURRENT_DATA:
             data_location = &BPS_Current;
+            break;
+        case SUPPLEMENTAL_VOLTAGE:
+            data_location = &Supplemental_Voltage;
             break;
         default:
             data_location = NULL;
